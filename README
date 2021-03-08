@@ -1,0 +1,72 @@
+Usage: ./jenkins-plugin-manager.sh [OPTIONS] COMMAND [..]
+
+Wrapper for the Jenkins Plugin Installation Manager tool.
+Provides some extra features.
+
+Options:
+    -f              Force mode (do not die on errors)
+    -p DIR          Directory to download plugins to (if needed)
+    -h              This screen
+
+Commands:
+
+    run [--download] ARGS [..]
+                    Runs 'java -jar plugin-installation-manager-tool.jar ARGS'.
+                    If --download is the first argument, the jar file is downloaded.
+
+    run-in-docker [ARGS ..]
+                    Runs the plugin installation manager tool from the 'jenkins/jenkins'
+                    Docker container. Passes any ARGS you specify.
+
+    plugin-versions PLUGIN [..]
+                            Lists all versions of each PLUGIN
+
+    plugin-versions --latest PLUGIN [..]
+                            Lists the latest version for PLUGIN
+
+    plugin-versions --last-secure PLUGIN[:VERSION] [..]
+                    Lists the oldest version for PLUGIN that has no known security
+                    vulnerabilities, or your own VERSION, whichever is newer.
+                    If no VERSION was passed and no vulnerability was found, does
+                    not return a version.
+
+    plugin-versions --next PLUGIN[:VERSION] [..]
+                            Lists the next version of PLUGIN
+
+    plugin-versions --prev PLUGIN[:VERSION] [..]
+                            Lists the previous version of PLUGIN
+
+    is-vulnerable PLUGIN:VERSION [..]
+                    Returns exit code 0 (success) if VERSION of PLUGIN has a known
+                    security vulnerability; otherwise returns exit code 1.
+                    Jenkins Core uses "core" as the PLUGIN, and VERSION can be a
+                    normal version or prefixed with "LTS ".
+
+    resolve-deps [--fix] PLUGIN[:VERSION] [..]
+                    Of a set of PLUGINs, resolves the mandatory dependencies for each
+                    PLUGIN and returns them. If VERSION is specified, it is considered
+                    'pinned' and no newer one is accepted. Without a VERSION, uses
+                    the latest. Uses the global '-p' option. If --fix is specified,
+                    will fix any conflicting pinned versions to create an installable
+                    plugin list.
+
+For any PLUGIN, you can specify just the plugin name ('git') or you can append a 
+version number ('git:1.2.3') which will get stripped off if needed.
+
+
+Examples:
+
+  Check for security warnings for a plugin:
+      ./jenkins-plugin-manager.sh run-in-docker --no-download --view-security-warnings --plugins active-directory:2.17
+
+  Get the latest versions of all your plugins:
+      ./jenkins-plugin-manager.sh plugin-versions --latest `cat plugins.txt`
+
+  Download the dependencies for a list of plugins and print them all out:
+     ./jenkins-plugin-manager.sh -p /home/vagrant/.jenkins-plugins.d resolve-deps `cat plugins.txt` > frozen.txt
+
+  Take a frozen plugins.txt and bump any insecure versions to their oldest secure versions.
+  Then resolve the resulting dependencies to find any broken pinned items and fix those.
+     ./jenkins-plugin-manager.sh plugin-versions --last-secure `cat frozen.txt` > frozen-secure.txt
+     ./jenkins-plugin-manager.sh resolve-deps `cat frozen-secure.txt` > frozen2.txt
+
